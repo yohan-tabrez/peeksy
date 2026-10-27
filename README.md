@@ -81,4 +81,4 @@ This is a plain JavaScript extension with no build step. Edit the source files a
 
 ## License
 
-No license file is included yet. All rights reserved unless otherwise stated.
+MIT — see [LICENSE](LICENSE).
