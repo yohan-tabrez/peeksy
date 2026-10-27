@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peeksy Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="page">
+
+    <header>
+      <img src="icons/icon48.png" alt="" class="logo">
+      <div class="header-text">
+        <h1>Peeksy</h1>
+        <p>ALT+click any link to preview it in a floating overlay</p>
+      </div>
+    </header>
+
+    <main>
+
+      <!-- ── Overlay Size ─────────────────────────────────────────────────── -->
+      <section>
+        <h2>Overlay Size</h2>
+
+        <div class="field">
+          <div class="label-row">
+            <label for="overlayWidth">Width</label>
+            <span class="value-badge"><span id="overlayWidthVal">80</span>%</span>
+          </div>
+          <input type="range" id="overlayWidth" min="30" max="100" step="1" value="80">
+          <div class="range-hints"><span>30%</span><span>100%</span></div>
+        </div>
+
+        <div class="field">
+          <div class="label-row">
+            <label for="overlayHeight">Height</label>
+            <span class="value-badge"><span id="overlayHeightVal">80</span>%</span>
+          </div>
+          <input type="range" id="overlayHeight" min="30" max="100" step="1" value="80">
+          <div class="range-hints"><span>30%</span><span>100%</span></div>
+        </div>
+      </section>
+
+      <!-- ── Content ─────────────────────────────────────────────────────── -->
+      <section>
+        <h2>Content</h2>
+
+        <div class="field">
+          <div class="label-row">
+            <label for="defaultZoom">Default zoom</label>
+            <span class="value-badge"><span id="defaultZoomVal">100</span>%</span>
+          </div>
+          <input type="range" id="defaultZoom" min="25" max="200" step="5" value="100">
+          <div class="range-hints"><span>25% — see more</span><span>200% — bigger text</span></div>
+          <p class="hint">Fits the page to the overlay width (as if the site were ~1280px wide), then applies this zoom. Below 100% shows more; above 100% magnifies.</p>
+        </div>
+      </section>
+
+      <!-- ── Interaction ─────────────────────────────────────────────────── -->
+      <section>
+        <h2>Interaction</h2>
+
+
+        <div class="field">
+          <label class="field-label">Trigger shortcut</label>
+          <p class="hint" style="margin-bottom: 12px;">Hold this key combination and click any link.</p>
+          <div class="radio-group" role="radiogroup" aria-label="Trigger shortcut">
+            <label class="radio">
+              <input type="radio" name="triggerKey" value="alt" checked>
+              <span class="radio-content"><kbd>Alt</kbd></span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="triggerKey" value="altShift">
+              <span class="radio-content"><kbd>Alt</kbd> + <kbd>Shift</kbd></span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="triggerKey" value="altCtrl">
+              <span class="radio-content"><kbd>Alt</kbd> + <kbd>Ctrl</kbd></span>
+            </label>
+          </div>
+          <p class="hint" style="margin-top: 12px;">Alt+Ctrl avoids Windows swallowing Alt+Win before the page sees it.</p>
+        </div>
+      </section>
+
+      <!-- ── Appearance ──────────────────────────────────────────────────── -->
+      <section>
+        <h2>Appearance</h2>
+
+        <div class="field">
+          <div class="label-row">
+            <label for="backdropOpacity">Backdrop opacity</label>
+            <span class="value-badge"><span id="backdropOpacityVal">48</span>%</span>
+          </div>
+          <input type="range" id="backdropOpacity" min="0" max="80" step="1" value="48">
+          <div class="range-hints"><span>0% — transparent</span><span>80% — dark</span></div>
+        </div>
+
+        <div class="field row">
+          <div>
+            <label for="backdropBlur">Backdrop blur</label>
+            <p class="hint" style="margin-top: 2px;">Frosted glass effect behind the overlay.</p>
+          </div>
+          <label class="toggle" aria-label="Backdrop blur">
+            <input type="checkbox" id="backdropBlur" checked>
+            <span class="knob"></span>
+          </label>
+        </div>
+      </section>
+
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite">Settings saved</div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

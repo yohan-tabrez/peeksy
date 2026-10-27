@@ -1,0 +1,318 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #0d0d12;
+  color: #e2e2ec;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ── Page shell ── */
+.page {
+  max-width: 580px;
+  margin: 0 auto;
+  padding: 40px 28px 80px;
+}
+
+/* ── Header ── */
+header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-bottom: 28px;
+  margin-bottom: 36px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+header .logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.header-text p {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.38);
+  margin-top: 3px;
+}
+
+/* ── Sections ── */
+section {
+  margin-bottom: 40px;
+}
+
+section h2 {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.3);
+  margin-bottom: 18px;
+}
+
+/* ── Fields ── */
+.field {
+  margin-bottom: 22px;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.label-row label,
+.field-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.value-badge {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64b4ff;
+  background: rgba(100, 180, 255, 0.1);
+  border: 1px solid rgba(100, 180, 255, 0.2);
+  padding: 1px 8px;
+  border-radius: 10px;
+  min-width: 48px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.32);
+  margin-top: 8px;
+}
+
+.range-hints {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.22);
+  margin-top: 5px;
+}
+
+/* ── Row layout (toggle controls) ── */
+.field.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.field.row label:first-child,
+.field.row > div > label {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* ── Range slider ── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #64b4ff;
+  border: 2.5px solid #0d0d12;
+  box-shadow: 0 0 0 1.5px rgba(100, 180, 255, 0.45);
+  cursor: pointer;
+  transition: background 80ms, box-shadow 80ms, transform 80ms;
+}
+
+input[type="range"]:hover::-webkit-slider-thumb {
+  background: #82c8ff;
+  box-shadow: 0 0 0 3px rgba(100, 180, 255, 0.3);
+}
+
+input[type="range"]:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+
+/* ── Toggle switch ── */
+.toggle {
+  position: relative;
+  width: 46px;
+  height: 26px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle .knob {
+  position: absolute;
+  inset: 0;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.toggle .knob::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  top: 2px;
+  left: 2px;
+  transition: transform 160ms cubic-bezier(0.34, 1.4, 0.64, 1), background 160ms ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.toggle input:checked + .knob {
+  background: rgba(100, 180, 255, 0.75);
+  border-color: rgba(100, 180, 255, 0.4);
+}
+
+.toggle input:checked + .knob::after {
+  transform: translateX(20px);
+  background: #fff;
+}
+
+.toggle:hover .knob {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Radio group ── */
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.radio {
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.radio input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.radio-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  transition: background 80ms, border-color 80ms, color 80ms;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.radio:hover .radio-content {
+  background: rgba(255, 255, 255, 0.09);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.radio input:checked + .radio-content {
+  background: rgba(100, 180, 255, 0.12);
+  border-color: rgba(100, 180, 255, 0.45);
+  color: #64b4ff;
+}
+
+/* ── kbd keys ── */
+kbd {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.6;
+}
+
+.radio input:checked ~ .radio-content kbd {
+  background: rgba(100, 180, 255, 0.15);
+  border-color: rgba(100, 180, 255, 0.35);
+  color: #82c8ff;
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(16, 20, 30, 0.92);
+  border: 1px solid rgba(100, 180, 255, 0.3);
+  color: #64b4ff;
+  padding: 10px 22px;
+  border-radius: 22px;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  white-space: nowrap;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

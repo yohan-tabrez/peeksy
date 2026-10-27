@@ -1,0 +1,49 @@
+# ── OS & editor noise ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# IDE / editor
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Local env & secrets
+.env
+.env.*
+
+# ── Chrome extension artifacts ────────────────────────────────────────────────
+# Auto-generated when the extension is loaded in Chrome
+_metadata/
+
+# Packed / distributed builds
+*.crx
+*.pem
+*.zip
+
+# ── Markdown (keep README only) ───────────────────────────────────────────────
+*.md
+!README.md
+
+# ── Unused logo & design assets ───────────────────────────────────────────────
+# Shipped icons live in icons/ and are referenced by manifest.json + options.html
+/logos/
+/assets/logos/
+/logo.*
+/logo-*
+*.psd
+*.ai
+*.sketch
+*.xd
+
+# Draft / alternate icon sources (not used by the extension)
+icons/*-draft*
+icons/*-source*
+icons/logo*
+icons/*.svg
+
+# Dependencies (if added later)
+node_modules/
