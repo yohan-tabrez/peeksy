@@ -105,6 +105,17 @@ async function relayNavigation(d, event, extra = {}) {
   await sendToTop(d.tabId, { type: 'frameEvent', token: p.token, frameId: d.frameId, event, url: d.url, ...extra });
 }
 
+// Tell the content script inside the preview frame that it is the preview (it
+// reports title / history state and forwards Escape). DOMContentLoaded is after
+// document_start scripts have registered their listeners, so the message lands.
+chrome.webNavigation.onDOMContentLoaded.addListener(async (d) => {
+  if (d.frameId === 0) return;
+  const p = await getPreview(d.tabId);
+  if (!p || p.frameId !== d.frameId) return;
+  chrome.tabs.sendMessage(d.tabId, { type: 'previewHello', token: p.token }, { frameId: d.frameId })
+    .catch(() => {});
+});
+
 chrome.webNavigation.onCommitted.addListener((d) => relayNavigation(d, 'committed'));
 chrome.webNavigation.onErrorOccurred.addListener((d) => relayNavigation(d, 'error', { error: d.error }));
 chrome.webNavigation.onHistoryStateUpdated.addListener((d) => relayNavigation(d, 'url'));

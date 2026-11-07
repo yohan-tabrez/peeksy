@@ -13,13 +13,22 @@
   const Settings = globalThis.PeeksySettings;
   if (!Settings) return;
 
+  // Only one live copy per frame. After an extension reload the old copy can
+  // survive in a different JS world (with a dead extension connection) and keep
+  // reacting to clicks, so every copy listens for this DOM event — which all
+  // worlds share — and shuts down when a newer copy announces itself.
+  const TAKEOVER_EVENT = 'peeksy:takeover';
+  const INSTANCE_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  document.addEventListener(TAKEOVER_EVENT, (e) => {
+    if (e.detail !== INSTANCE_ID) installAbort.abort();
+  }, { signal: installSignal });
+  document.dispatchEvent(new CustomEvent(TAKEOVER_EVENT, { detail: INSTANCE_ID }));
+
   const IS_TOP = window === window.top;
-  const TOKEN_PREFIX = 'peeksy-preview:';
-  // The overlay names its iframe with a per-preview token, so the copy of this
-  // script running inside the preview knows it is the preview.
-  const previewToken = !IS_TOP && typeof window.name === 'string' && window.name.startsWith(TOKEN_PREFIX)
-    ? window.name.slice(TOKEN_PREFIX.length)
-    : null;
+  // Set when the background tells this frame it is the open preview (it tracks
+  // the preview frame with webNavigation). Nothing about the frame itself is
+  // marked, so the previewed page can't see or react to Peeksy.
+  let previewToken = null;
 
   // ─── Extension plumbing ──────────────────────────────────────────────────────
 
@@ -81,8 +90,16 @@
     }
   }
 
+  /** A copy whose extension was reloaded/removed retires itself on first use. */
+  function alive() {
+    if (installSignal.aborted) return false;
+    if (extensionAlive()) return true;
+    installAbort.abort();
+    return false;
+  }
+
   function activeHere() {
-    return settings.enabled && !Settings.isSiteDisabled(pageHost(), settings.disabledSites);
+    return alive() && settings.enabled && !Settings.isSiteDisabled(pageHost(), settings.disabledSites);
   }
 
   // ─── Link helpers ────────────────────────────────────────────────────────────
@@ -254,6 +271,10 @@
         if (previewToken && msg.token === previewToken) runFrameCommand(msg.cmd);
         return false;
 
+      case 'previewHello':
+        if (!IS_TOP && typeof msg.token === 'string') becomePreview(msg.token);
+        return false;
+
       default:
         return false;
     }
@@ -277,7 +298,10 @@
     if (cmd === 'forward' && nav.canGoForward) nav.forward();
   }
 
-  if (previewToken) {
+  function becomePreview(token) {
+    if (previewToken) return; // already set up for this document
+    previewToken = token;
+    cancelHover();
     let lastState = '';
     const report = (event) => {
       const nav = window.navigation;
@@ -300,9 +324,9 @@
 
     report('ready');
     containScroll();
-    document.addEventListener('DOMContentLoaded', () => { containScroll(); report('nav'); },
-      { once: true, signal: installSignal });
-    window.addEventListener('load', () => report('nav'), { once: true, signal: installSignal });
+    if (document.readyState !== 'complete') {
+      window.addEventListener('load', () => report('nav'), { once: true, signal: installSignal });
+    }
     // Catches SPA navigations and title changes (only this one frame polls).
     const poll = setInterval(() => {
       if (!extensionAlive()) clearInterval(poll);
@@ -327,14 +351,19 @@
   let previewedOnThisPage = false;
 
   function showPreview(url, source) {
-    if (!isPreviewable(url)) return;
+    if (!isPreviewable(url) || !alive()) return;
     previewedOnThisPage = true;
     let returnFocus = null;
     if (activeOverlay) returnFocus = activeOverlay.closeNow({ restoreFocus: false });
+    // One overlay per tab: remove any leftover host, including ones created by a
+    // stale copy of this script or still playing a close animation.
+    for (const stale of document.querySelectorAll('[data-peeksy]')) stale.remove();
     try {
       activeOverlay = createOverlay(url, returnFocus);
     } catch (err) {
       activeOverlay = null;
+      // Don't leave a half-built overlay (and its loading iframe) behind.
+      for (const stale of document.querySelectorAll('[data-peeksy]')) stale.remove();
       console.warn('[Peeksy] could not open preview', err);
     }
   }
@@ -359,6 +388,8 @@
   const LOAD_TIMEOUT = 15000;   // nothing at all happened
   const READY_GRACE = 1500;     // load event fired but the document never reported in
   const RULE_WAIT = 3000;       // max wait for the header rule before loading anyway
+  const LOOP_WINDOW = 5000;     // reload-loop guard: more than LOOP_MAX_COMMITS page
+  const LOOP_MAX_COMMITS = 8;   //   loads inside LOOP_WINDOW ms stops the preview
 
   const STYLES = `
     :host {
@@ -713,7 +744,6 @@
     // A framed page that is same-origin with this tab could lift its own sandbox —
     // acceptable for a user-initiated preview tool.
     const iframe = h('iframe', {
-      name: TOKEN_PREFIX + token,
       title: 'Link preview',
       sandbox: 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals',
       allow: 'autoplay; fullscreen; encrypted-media; clipboard-write',
@@ -812,6 +842,25 @@
     let awaitingSignal = false;   // load fired, no signal seen yet
     let graceTimer = 0;
     let lastErrorUrl = null;      // URL of the navigation webNavigation reported as failed
+    let halted = false;           // preview stopped because it kept reloading
+    const commitTimes = [];
+
+    /** A page that reloads/redirects itself endlessly inside the preview is stopped. */
+    function reloadLoopDetected() {
+      const now = performance.now();
+      commitTimes.push(now);
+      while (commitTimes.length && now - commitTimes[0] > LOOP_WINDOW) commitTimes.shift();
+      return commitTimes.length > LOOP_MAX_COMMITS;
+    }
+
+    function haltPreview() {
+      halted = true;
+      awaitingSignal = false;
+      clearTimeout(graceTimer);
+      clearTimeout(loadTimer);
+      iframe.src = 'about:blank';
+      showFallback('loop');
+    }
 
     function setLoading(on) {
       dialog.classList.toggle('loading', on);
@@ -820,9 +869,10 @@
     function showFallback(reason) {
       if (cleaned) return;
       setLoading(false);
-      fbBody.textContent = reason === 'timeout'
-        ? 'The page took too long to respond. Open it another way:'
-        : 'The site refuses to be shown inside another page. Open it another way:';
+      fbBody.textContent = {
+        timeout: 'The page took too long to respond. Open it another way:',
+        loop: 'The page kept reloading itself inside the preview, so Peeksy stopped it. Open it another way:',
+      }[reason] || 'The site refuses to be shown inside another page. Open it another way:';
       fallback.classList.add('show');
       iframe.style.visibility = 'hidden';
       status.textContent = 'This page can’t be previewed';
@@ -864,7 +914,7 @@
     }
 
     function onIframeLoad() {
-      if (cleaned || !loadArmed) return;
+      if (cleaned || !loadArmed || halted) return;
       setLoading(false);
       clearTimeout(graceTimer);
       if (fallback.classList.contains('show') && lastErrorUrl) return; // error page finished loading
@@ -889,6 +939,8 @@
       signalBeforeLoad = false;
       awaitingSignal = false;
       lastErrorUrl = null;
+      halted = false;
+      commitTimes.length = 0;
       clearTimeout(graceTimer);
       clearTimeout(loadTimer);
       loadTimer = setTimeout(() => {
@@ -927,6 +979,7 @@
         return;
       }
       if (Number.isInteger(msg.frameId)) frameId = msg.frameId;
+      if (halted) return;
 
       switch (msg.event) {
         case 'error':
@@ -936,6 +989,10 @@
         case 'committed':
           // Chrome also reports the error page it commits for a blocked load.
           if (String(msg.url).startsWith('chrome-error:') || (lastErrorUrl && msg.url === lastErrorUrl)) return;
+          if (reloadLoopDetected()) {
+            haltPreview();
+            return;
+          }
           lastErrorUrl = null;
           onDocumentSignal();
           break;
@@ -1062,23 +1119,39 @@
     const SCROLL_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown',
       'Home', 'End', ' ']);
 
+    // Tab cycles through the overlay's controls and the preview. This only ever
+    // reacts to the user's key presses — it never fights the page over focus.
+    function cycleFocus(backwards) {
+      const items = [btnBack, btnForward, btnReload, btnCopy, btnHere, btnTab, btnWindow, btnClose,
+        ...(fallback.classList.contains('show') ? [fbRetry, fbHere, fbTab, fbWindow] : [iframe])]
+        .filter((el) => !el.disabled);
+      const i = items.indexOf(shadow.activeElement);
+      const next = i === -1
+        ? (backwards ? items.length - 1 : 0)
+        : (i + (backwards ? -1 : 1) + items.length) % items.length;
+      items[next].focus({ preventScroll: true });
+    }
+
     on(window, 'keydown', (e) => {
       if (e.key === 'Escape' && !e.isComposing) {
         swallow(e);
         close();
         return;
       }
-      // Focus is on the overlay chrome: don't let keys scroll the page behind
-      // (Space still activates a focused button).
-      if (SCROLL_KEYS.has(e.key) && !(e.key === ' ' && e.composedPath()[0]?.localName === 'button')) {
+      if (e.key === 'Tab' && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        cycleFocus(e.shiftKey);
+        return;
+      }
+      // Focus is on the overlay chrome (or nowhere): don't let keys scroll the
+      // page behind. Space still activates a focused button.
+      const origin = e.composedPath()[0];
+      const fromOverlay = e.composedPath().includes(host);
+      const fromNowhere = origin === document.body || origin === document.documentElement || origin === document;
+      if ((fromOverlay || fromNowhere) && SCROLL_KEYS.has(e.key)
+        && !(e.key === ' ' && origin?.localName === 'button')) {
         e.preventDefault();
       }
-    }, { capture: true });
-
-    // Focus trap: anything outside the overlay that receives focus bounces back.
-    on(document, 'focusin', (e) => {
-      if (cleaned || e.target === host) return;
-      dialog.focus({ preventScroll: true });
     }, { capture: true });
 
     // ── Drag (toolbar) and resize (corner) ──
